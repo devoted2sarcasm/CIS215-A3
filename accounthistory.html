@@ -74,7 +74,66 @@
           </table>
         </div>
         <button id="back" class="button" onclick="history.back()">Go Back</button>
-</body>
+
+        <script>
+          const urlParams = new URLSearchParams(window.location.search);
+          const userId = urlParams.get('id');
+
+          if (userId) {
+            // Fetch user information
+            fetch(`/api/accountinfo/${userId}`)
+              .then(response => response.json())
+              .then(data => displayAccountInfo(data))
+              .catch(error => console.error('Error fetching account information:', error));
+
+            // Fetch transaction history
+            fetch(`/api/transactionhistory/${userId}`)
+              .then(response => response.json())
+              .then(data => displayTransactionHistory(data))
+              .catch(error => console.error('Error fetching transaction history:', error));
+          } else {
+            console.error('User ID not provided.');
+          }
+
+          function displayAccountInfo(data) {
+            if (data) {
+              const { firname, lasname } = data;
+
+              // Populate the username
+              document.getElementById('username').innerText = `Most recent transactions for ${firname} ${lasname}:`;
+            }
+          }
+
+          function displayTransactionHistory(data) {
+            if (data) {
+              const transactionTableBody = document.getElementById('transactionTableBody');
+
+              // Clear the table body
+              transactionTableBody.innerHTML = '';
+
+              // Add each transaction to the table
+              data.forEach(transaction => {
+                const { type, amount, balance, timestamp } = transaction;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                  <td>${type}</td>
+                  <td>${amount}</td>
+                  <td>${balance}</td>
+                  <td>${timestamp}</td>
+                `;
+
+                transactionTableBody.appendChild(row);
+              });
+            }
+          }
+
+
+        </script>
+
+
+
+      </body>
 
 <footer>
     <p>

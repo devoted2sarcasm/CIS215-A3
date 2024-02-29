@@ -48,7 +48,38 @@
             </div>
         </form>
     </div>
+
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('id');
     
+        if (userId) {
+          // Fetch user information
+          fetch(`/api/accountinfo/${userId}`)
+            .then(response => response.json())
+            .then(data => displayAccountInfo(data))
+            .catch(error => console.error('Error fetching account information:', error));
+        } else {
+          console.error('User ID not provided.');
+        }
+    
+        function displayAccountInfo(data) {
+          if (data) {
+            const { firname, lasname, accountNumber, balance } = data;
+    
+            // Populate the placeholders
+            document.getElementById('name-placeholder').innerText = `${firname} ${lasname}`;
+            document.getElementById('account-number-placeholder').innerText = accountNumber;
+            document.getElementById('balance-placeholder').innerText = `$${balance.toFixed(2)}`;
+            
+          } else {
+            console.error('Error fetching account information.');
+          }
+        }
+    
+      </script>
+
 </body>
 
 <footer>

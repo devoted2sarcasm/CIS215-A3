@@ -2,9 +2,129 @@ const sqlite3 = require('sqlite3').verbose();
 
 const db = new sqlite3.Database('bank.db');
 
-// Function to get all cars from the database
-function login(callback) {
-  db.all('SELECT email, password FROM users WHERE email = ?', (err, rows) => {
+
+
+function createUser(fn, ln, mn, em, ph, sa, zip, pw, callback) {
+  const insertUserQuery = `INSERT INTO users (firname, lasname, midname, email, phone, street_address, zip, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+  db.run(insertUserQuery, [fn, ln, mn, em, ph, sa, zip, pw], function (err) {
+    if (err) {
+      callback(err);
+      return;
+    }
+    
+    const userId = this.lastID;
+
+    // Open an account for the user
+    const createAccountQuery = `INSERT INTO accounts (balance, opened, owner_id, overdrawn) VALUES (0, CURRENT_TIMESTAMP, ?, 0)`;
+    db.run(createAccountQuery, [userId], function (err) {
+      if (err) {
+        callback(err);
+        return;
+      }
+      callback(null);
+    });
+  });
+}
+
+
+// function to login and pass the authenticated user id to the accountinfo page
+function login(em, pw, callback) {
+  const loginQuery = `SELECT id FROM users WHERE email = ? AND password = ?`;
+  db.get(loginQuery, [em, pw], (err, row) => {
+    if (err) {
+      callback(err, null);
+      return;
+    }
+    if (row) {
+      callback(null, row.id);
+    } else {
+      callback(null, null);
+    }
+  });
+}
+
+// making a deposit
+function deposit(amt, acct, callback) {
+  const depositQuery = 'INSERT INTO transaction (timestamp, type, amt, begin_bal, end_bal, user, acct) VALUES (CURRENT_TIMESTAMP, "deposit", ?, (SELECT balance FROM accounts WHERE id = ?), (SELECT balance + ? FROM accounts WHERE id = ?), (SELECT owner_id FROM accounts WHERE id = ?), ?)';
+  db.run(depositQuery, [amt, acct, amt, acct, acct, acct], (err) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    const updateBalanceQuery = 'UPDATE accounts SET balance = balance + ? WHERE id = ?';
+    db.run(updateBalanceQuery, [amt, acct], (err) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+      callback(null);
+    });
+  });
+}
+
+// making a withdrawal
+function withdraw(amt, acct, callback) {
+  const withdrawQuery = 'INSERT INTO transaction (timestamp, type, amt, begin_bal, end_bal, user, acct) VALUES (CURRENT_TIMESTAMP, "withdrawal", ?, (SELECT balance FROM accounts WHERE id = ?), (SELECT balance - ? FROM accounts WHERE id = ?), (SELECT owner_id FROM accounts WHERE id = ?), ?)';
+  db.run(withdrawQuery, [amt, acct, amt, acct, acct, acct], (err) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    const updateBalanceQuery = 'UPDATE accounts SET balance = balance - ? WHERE id = ?';
+    db.run(updateBalanceQuery, [amt, acct], (err) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+      callback(null);
+    });
+  });
+}
+
+// function to make an account overdrawn
+function overdraw(acct, callback) {
+  const overdrawQuery = 'UPDATE accounts SET overdrawn = 1 WHERE id = ?';
+  db.run(overdrawQuery, [acct], (err) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    callback(null);
+  });
+}
+
+// check for overdrawn and retuen true/false
+function isOverdrawn(acct, callback) {
+  const overdrawnQuery = 'SELECT overdrawn FROM accounts WHERE id = ?';
+  db.get(overdrawnQuery, [acct], (err, row) => {
+    if (err) {
+      callback(err, null);
+      return;
+    }
+    if (row.overdrawn) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  });
+}
+
+// get current balance 
+function getBalance(acct, callback) {
+  const balanceQuery = 'SELECT balance FROM accounts WHERE id = ?';
+  db.get(balanceQuery, [acct], (err, row) => {
+    if (err) {
+      callback(err, null);
+      return;
+    }
+    callback(null, row.balance);
+  });
+}
+
+// get 20 most recent transactions
+function mostRecentTx(acct, callback) {
+  const recentTxQuery = 'SELECT * FROM transaction WHERE acct = ? ORDER BY timestamp DESC LIMIT 20';
+  db.all(recentTxQuery, [acct], (err, rows) => {
     if (err) {
       callback(err, null);
       return;
@@ -13,192 +133,39 @@ function login(callback) {
   });
 }
 
-//function to retrieve available cars
-function getAvail(callback) {
-    db.all('SELECT id, veh_make as "Make", veh_model as "Model", veh_year as "Year" FROM Vehicle WHERE current_use = 0 OR current_use IS null OR current_use = false;', (err, rows) => {
-      if (err) {
-        callback(err, null);
-        return;
-      }
-      // Convert the rows to a JSON object if needed
-      const result = rows.map(row => ({
-        id: row.id,
-        Make: row.Make,
-        Model: row.Model,
-        Year: row.Year,
-      }));
-      callback(null, result);
-    });
-  }
-
-  //function to retrieve cars currently in use
-function getUsedCars(callback) {
-    db.all('SELECT id, veh_make as "Make", veh_model as "Model", veh_year as "Year" FROM Vehicle WHERE current_use = 1;', (err, rows) => {
-      if (err) {
-        callback(err, null);
-        return;
-      }
-      // Convert the rows to a JSON object if needed
-      const result = rows.map(row => ({
-        id: row.id,
-        Make: row.Make,
-        Model: row.Model,
-        Year: row.Year,
-      }));
-      callback(null, result);
-    });
-  }
-
-// Function to start a trip
-function startTrip(vehicleId, driverId, passengerId, reason, destination, condition, dateStart, timeStart, fuel, callback) {
-    // Start a transaction to ensure data consistency
-    db.serialize(() => {
-      // 1. Insert a new entry to the trips table
-      db.run(
-        'INSERT INTO Trips (vehicle_used, driver, passenger, reason_for_trip, destination_zip, veh_cond_start, date_start, time_start, fuel_begin, starting_mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT mileage FROM Vehicle WHERE id = ?))',
-        [vehicleId, driverId, passengerId, reason, destination, condition, dateStart, timeStart, fuel, vehicleId],
-        function (err) {
-          if (err) {
-            callback(err);
-            return;
-          }
-  
-          const tripId = this.lastID;
-  
-          // 2. Update the boolean on the vehicle table for current_use to true for the chosen car
-          db.run('UPDATE Vehicle SET current_use = 1 WHERE id = ?', [vehicleId], function (err) {
-            if (err) {
-              callback(err);
-              return;
-            }
-  
-            // 3. Increment the trips_as_driver field on the occupants table for the driver (if driverId is provided)
-            if (driverId) {
-              db.run('UPDATE Occupants SET trips_as_driver = trips_as_driver + 1 WHERE id = ?', [driverId], function (err) {
-                if (err) {
-                  callback(err);
-                  return;
-                }
-  
-                // 4. Increment the trips_as_passenger field on the occupants table for the passenger (if passengerId is provided)
-                if (passengerId) {
-                  db.run('UPDATE Occupants SET trips_as_pass = trips_as_pass + 1 WHERE id = ?', [passengerId], function (err) {
-                    if (err) {
-                      callback(err);
-                      return;
-                    }
-  
-                    // Retrieve the newly inserted trip data
-                    db.get('SELECT * FROM Trips WHERE id = ?', [tripId], (err, row) => {
-                      if (err) {
-                        callback(err);
-                        return;
-                      }
-  
-                      callback(null, row);
-                    });
-                  });
-                } else {
-                  // Retrieve the newly inserted trip data
-                  db.get('SELECT * FROM Trips WHERE id = ?', [tripId], (err, row) => {
-                    if (err) {
-                      callback(err);
-                      return;
-                    }
-  
-                    callback(null, row);
-                  });
-                }
-              });
-            } else {
-              // Retrieve the newly inserted trip data
-              db.get('SELECT * FROM Trips WHERE id = ?', [tripId], (err, row) => {
-                if (err) {
-                  callback(err);
-                  return;
-                }
-  
-                callback(null, row);
-              });
-            }
-          });
-        }
-      );
-    });
-  }
-  
-
-//function to end a trip, autopopulating to select from the current cars in use to select the trip to end
-
-
-// Function to add a new car to the database
-function addCar(make, model, year, date_added, miles, callback) {
-
-    db.run('INSERT INTO Vehicle (veh_make, veh_model, veh_year, added_to_fleet, original_mileage) VALUES (?, ?, ?, ?, ?)', [make, model, year, date_added, miles], function (err) {
-        if (err) {
-            if (callback && typeof callback === 'function') {
-                callback(err);
-            } else {
-                console.error('Error in addCar:', err);
-            }
-            return;
-        }
-        
-        if (callback && typeof callback === 'function') {
-            callback(null);
-        } else {
-            console.error('Callback not provided or not a function in addCar');
-        }
-    });
+// logout
+function logout(callback) {
+  callback(null);
 }
 
-
-
-//function for adding personnel to the database
-function addPerson(firstName, lastName, middleName, dob, driver_lic_num, street_address, city, state, zip, callback) {
-    db.run('INSERT INTO Occupants (firstname, lastname, middlename, dob, driver_lic_num, street_address, city, state, zip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [firstName, lastName, middleName, dob, driver_lic_num, street_address, city, state, zip], (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback(null);
-    });
-  
+// get first name, last name and current balance for display on accountinfo page
+function accountInfo(acct, callback) {
+  const accountInfoQuery = 'SELECT firname, lasname, balance FROM users JOIN accounts ON users.id = accounts.owner_id WHERE accounts.id = ?';
+  db.get(accountInfoQuery, [acct], (err, row) => {
+    if (err) {
+      callback(err, null);
+      return;
+    }
+    callback(null, row);
+  });
 }
 
-//function to end a trip
-// Add this function to dbOperations.js
-function endTrip(tripId, endingMileage, vehCondEnd, dateEnd, timeEnd, fuelEnd, issuesThisTrip, callback) {
-    db.serialize(() => {
-        // Update the trip details
-        db.run('UPDATE Trips SET ending_mileage = ?, veh_cond_end = ?, date_end = ?, time_end = ?, fuel_end = ?, issues_this_trip = ? WHERE id = ?', [endingMileage, vehCondEnd, dateEnd, timeEnd, fuelEnd, issuesThisTrip, tripId], (err) => {
-            if (err) {
-                callback(err);
-                return;
-            }
-
-            // Get the vehicle ID associated with the ended trip
-            db.get('SELECT vehicle_used FROM Trips WHERE id = ?', [tripId], (err, row) => {
-                if (err) {
-                    callback(err);
-                    return;
-                }
-
-                const vehicleId = row.vehicle_used;
-
-                // Update the current_use boolean to 0 for the associated vehicle
-                db.run('UPDATE Vehicle SET current_use = 0 WHERE id = ?', [vehicleId], (err) => {
-                    if (err) {
-                        callback(err);
-                        return;
-                    }
-
-                    callback(null);
-                });
-            });
-        });
-    });
+// validate login credentials
+function validateLogin(em, pw, callback) {
+  const loginQuery = 'SELECT id FROM users WHERE email = ? AND password = ?';
+  db.get(loginQuery, [em, pw], (err, row) => {
+    if (err) {
+      callback(err, null);
+      return;
+    }
+    if (row) {
+      callback(null, row.id);
+    } else {
+      callback(null, null);
+    }
+  });
 }
+
 
 
 
@@ -218,8 +185,8 @@ module.exports = {
     withdraw,
     deposit,
     overdraw,
-    openAccount,
-    closeAccount,
+    //openAccount,
+    //closeAccount,
     getBalance,
     mostRecentTx,
     closeDatabase,

@@ -85,10 +85,12 @@ app.get('/', (req, res) => {
       });
       
       app.post('/api/login', (req, res) => {
-        const { em, pw } = req.body;
+        console.log('login request received: ', req.body);
+        const { email, password } = req.body;
       
-        dbOperations.login(em, pw, (err, userId) => {
+        dbOperations.login(email, password, (err, userId) => {
           if (err) {
+            console.error('Error during login:', err);
             res.status(500).send(err.message);
           } else if (userId) {
             res.status(200).send({ userId });

@@ -28,16 +28,22 @@ function createUser(fn, ln, mn, em, ph, sa, zip, pw, callback) {
 
 
 // function to login and pass the authenticated user id to the accountinfo page
-function login(em, pw, callback) {
+function login(email, password, callback) {
   const loginQuery = `SELECT id FROM users WHERE email = ? AND password = ?`;
-  db.get(loginQuery, [em, pw], (err, row) => {
+  console.log('loginQuery: ', loginQuery);
+  console.log('em: ', email);
+  console.log('pw: ', password);
+  db.get(loginQuery, [email, password], (err, row) => {
     if (err) {
+      console.error('Error during login:', err);
       callback(err, null);
       return;
     }
     if (row) {
+      console.log('login success, user id: ', row.id);
       callback(null, row.id);
     } else {
+      console.log('login failed, no user found with those credentials.');
       callback(null, null);
     }
   });

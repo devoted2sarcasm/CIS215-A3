@@ -6,22 +6,29 @@ document.addEventListener('DOMContentLoaded', () => {
     loginButton.addEventListener('click', async () => {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
+      console.log('email: ', email);
+      console.log('password: ', password);
+      console.log('payload: ', JSON.stringify({ email, password }));
   
       try {
+        console.log('fetching...');
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded', // or 'application/json'
+              'Content-Type': 'application/json', // 'application/x-www-form-urlencoded'
             },
             body: JSON.stringify({ email, password }),
           });
+        console.log('fetch complete: ', response);
           
   
         if (response.ok) {
+          console.log('response ok');
           const result = await response.json();
           const userId = result.userId;
   
           // Redirect to accountinfo.html with the user's ID
+          console.log('redirecting to accountinfo.html');
           window.location.href = `/accountinfo.html?id=${userId}`;
         } else {
           // Display error message

@@ -8,10 +8,9 @@
     <meta name="author" content="Ken Page">
     <meta name="description" content="FTW BANK">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="service-worker.js"></script>
-    <script src="script-account-mk3.js"></script>
-    <link rel="manifest" href="manifest.json" />
-    <script src="app.js"></script>
+    <script src="script-account.js"></script>
+    <!--<link rel="manifest" href="manifest.json" />
+    <script src="app.js"></script>-->
 
 </head>
 
@@ -41,7 +40,7 @@
                 <input type="text" name="input-amount" id="input-amount" placeholder="Amount" required>
             </p>
             <div class="button-container">
-                <button type="button" id="account-history" class="button">Account History</button>
+                <button type="button" id="history" class="button">Account History</button>
                 <button type="button" id="deposit" class="button">Deposit</button>
                 <button type="button" id="withdraw" class="button">Withdraw</button>
                 <button type="button" id="logout" class="button">Logout</button>
@@ -51,34 +50,41 @@
 
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('id');
-    
-        if (userId) {
-          // Fetch user information
-          fetch(`/api/accountinfo/${userId}`)
-            .then(response => response.json())
-            .then(data => displayAccountInfo(data))
-            .catch(error => console.error('Error fetching account information:', error));
-        } else {
-          console.error('User ID not provided.');
-        }
-    
-        function displayAccountInfo(data) {
-          if (data) {
-            const { firname, lasname, accountNumber, balance } = data;
-    
+        document.addEventListener('DOMContentLoaded', () => {
+          const urlParams = new URLSearchParams(window.location.search);
+          const userId = localStorage.getItem('userId') || urlParams.get('userId');
+      
+          if (userId) {
+            fetch(`/api/accountinfo/${userId}`)
+              .then(response => {
+                console.log('Response:', response);
+                if (!response.ok) {
+                  throw new Error(`Server response not OK: ${response.statusText}`);
+                }
+                return response.json();
+              })
+              .then(data => {
+                if (data) {
+                  displayAccountInfo(data);
+                } else {
+                  console.error('Empty or invalid response from the server.');
+                }
+              })
+              .catch(error => console.error('Error fetching account information:', error));
+          } else {
+            console.error('User ID not provided.');
+          }
+      
+          function displayAccountInfo(data) {
+            const { firname, lasname, balance } = data;
+      
             // Populate the placeholders
             document.getElementById('name-placeholder').innerText = `${firname} ${lasname}`;
-            document.getElementById('account-number-placeholder').innerText = accountNumber;
             document.getElementById('balance-placeholder').innerText = `$${balance.toFixed(2)}`;
-            
-          } else {
-            console.error('Error fetching account information.');
           }
-        }
-    
+        });
       </script>
+      
 
 </body>
 

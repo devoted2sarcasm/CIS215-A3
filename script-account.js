@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('id');
+    const userId = localStorage.getItem('userId') || urlParams.get('id');
 
   
     function makeDeposit() {
@@ -50,7 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
     function logout() {
         // Implement logout logic, e.g., clearing session or redirecting to the login page
-        window.location.href = '/index.html';
+        localStorage.removeItem('userId');
+        location.assign("https://localhost:4000/index.html");
       }
     
     function refreshPage() {

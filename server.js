@@ -124,6 +124,20 @@ app.get('/', (req, res) => {
         });
       });
       
+      app.get('/api/accountinfo/:acct', (req, res) => {
+        const { acct } = req.params;
+        console.log('acct: ', acct);
+        dbOperations.getAccountInfo(acct, (err, accountInfo) => {
+          if (err) {
+            res.status(500).send(err.message);
+          } else {
+            res.status(200).json(accountInfo);  // Send the accountInfo as JSON
+          }
+        });
+      });
+      
+
+
       app.get('/api/balance/:acct', (req, res) => {
         const { acct } = req.params;
       

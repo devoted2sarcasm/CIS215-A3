@@ -29,7 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
   
           // Redirect to accountinfo.html with the user's ID
           console.log('redirecting to accountinfo.html');
-          window.location.href = `/accountinfo.html?id=${userId}`;
+          localStorage.setItem('userId', userId);
+          //set location to accountinfo.html
+          window.location.href = `/accountinfo.html`;
+          
         } else {
           // Display error message
           errorMessage.innerText = 'Login attempt failed.';

@@ -145,16 +145,17 @@ function logout(callback) {
 }
 
 // get first name, last name and current balance for display on accountinfo page
-function accountInfo(acct, callback) {
+function getAccountInfo(acct, callback) {
   const accountInfoQuery = 'SELECT firname, lasname, balance FROM users JOIN accounts ON users.id = accounts.owner_id WHERE accounts.id = ?';
   db.get(accountInfoQuery, [acct], (err, row) => {
     if (err) {
       callback(err, null);
-      return;
+    } else {
+      callback(null, row);
     }
-    callback(null, row);
   });
 }
+
 
 // validate login credentials
 function validateLogin(em, pw, callback) {
@@ -197,4 +198,5 @@ module.exports = {
     mostRecentTx,
     closeDatabase,
     createUser,
+    getAccountInfo,
 };

@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         body: JSON.stringify({ amt: parseFloat(amount), acct: userId }),
       })
+        .then(console.log('deposit request sent')
+        .then(console.log('amount: ', amount, '-- userId: ', userId))
         .then(response => response.json())
         .then(() => refreshPage())
         .catch(error => console.error('Error making deposit:', error));

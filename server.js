@@ -1,5 +1,5 @@
 /*DB SCHEMA
-CREATE TABLE "accounts" (
+CREATE TABLE IF NOT EXISTS "accounts" (
 	"id"	INTEGER NOT NULL UNIQUE,
 	"balance"	INTEGER NOT NULL,
 	"recent_tx"	INTEGER,
@@ -11,7 +11,7 @@ CREATE TABLE "accounts" (
 	PRIMARY KEY("id" AUTOINCREMENT)
 )
 
-CREATE TABLE "transaction" (
+CREATE TABLE IF NOT EXISTS "transaction" (
 	"id"	INTEGER NOT NULL UNIQUE,
 	"timestamp"	TEXT NOT NULL,
 	"type"	TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE "transaction" (
 	PRIMARY KEY("id" AUTOINCREMENT)
 )
 
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
 	"id"	INTEGER NOT NULL UNIQUE,
 	"firname"	TEXT,
 	"lasname"	TEXT,
@@ -38,7 +38,7 @@ CREATE TABLE "users" (
 	PRIMARY KEY("id" AUTOINCREMENT)
 )
 
-CREATE TRIGGER overdraw
+CREATE TRIGGER IF NOT EXISTS overdraw
 AFTER UPDATE ON accounts
 FOR EACH ROW
 WHEN NEW.balance < 0
@@ -50,18 +50,24 @@ END
 
 */
 
-
-
-
-
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const dbOperations = require('./dbOperations');
 const bodyParser = require('body-parser');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const port = 4000;
+
+const dbFile = path.join(__dirname, 'bank.db');
+const db = new sqlite3.Database(dbFile, (err) => {
+    if (err) {
+        console.error('Error opening database:', err.message);
+    } else {
+        console.log(`Connected to the database: ${dbFile}`);
+    }
+});
 
 app.use(express.json());
 app.use(express.static('C:/NCMC/CIS215/CIS215-A3'));
@@ -102,6 +108,7 @@ app.get('/', (req, res) => {
       
       app.post('/api/deposit', (req, res) => {
         const { amt, acct } = req.body;
+        console.log('deposit request received: ', req.body);
       
         dbOperations.deposit(amt, acct, (err) => {
           if (err) {

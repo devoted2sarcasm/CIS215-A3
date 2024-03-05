@@ -51,38 +51,43 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-          const urlParams = new URLSearchParams(window.location.search);
-          const userId = localStorage.getItem('userId') || urlParams.get('userId');
-      
-          if (userId) {
-            fetch(`/api/accountinfo/${userId}`)
-              .then(response => {
-                console.log('Response:', response);
-                if (!response.ok) {
-                  throw new Error(`Server response not OK: ${response.statusText}`);
-                }
-                return response.json();
-              })
-              .then(data => {
-                if (data) {
-                  displayAccountInfo(data);
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = localStorage.getItem('userId') || urlParams.get('userId');
+            console.log('User ID:', userId);
+
+            if (userId) {
+                // Fetch user information
+                fetch(`/api/accountinfo/${userId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => displayAccountInfo(data))
+                    .catch(error => console.error('Error fetching account information:', error));
+
+            } else {
+                console.error('User ID not provided.');
+            }
+
+            function displayAccountInfo(data) {
+                if (data && !data.error) {
+                    const { firname, lasname, accountNumber, balance } = data;
+
+                    // Populate the placeholders
+                    document.getElementById('name-placeholder').innerText = `${firname} ${lasname}`;
+                    document.getElementById('account-number-placeholder').innerText = accountNumber || 'N/A';
+                    document.getElementById('balance-placeholder').innerText = `$${balance.toFixed(2)}`;
+                } else if (data && data.error) {
+                    console.error('Error fetching account information:', data.error);
                 } else {
-                  console.error('Empty or invalid response from the server.');
+                    console.error('Error fetching account information.');
                 }
-              })
-              .catch(error => console.error('Error fetching account information:', error));
-          } else {
-            console.error('User ID not provided.');
-          }
-      
-          function displayAccountInfo(data) {
-            const { firname, lasname, balance } = data;
-      
-            // Populate the placeholders
-            document.getElementById('name-placeholder').innerText = `${firname} ${lasname}`;
-            document.getElementById('balance-placeholder').innerText = `$${balance.toFixed(2)}`;
-          }
+                }
+
         });
+
       </script>
       
 

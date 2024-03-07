@@ -99,6 +99,7 @@ app.get('/', (req, res) => {
             console.error('Error during login:', err);
             res.status(500).send(err.message);
           } else if (userId) {
+            console.log("Logged in!");
             res.status(200).send({ userId });
           } else {
             res.status(401).send('Login failed');

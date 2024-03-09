@@ -85,6 +85,8 @@ app.get('/', (req, res) => {
           if (err) {
             res.status(500).send(err.message);
           } else {
+            console.log('User created successfully');
+            console.log(fn, ln, mn, em, ph, sa, zip, pw);
             res.status(201).send('User created successfully');
           }
         });

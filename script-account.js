@@ -1,6 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = localStorage.getItem('userId') || urlParams.get('id');
+    const accountInfo = JSON.parse(localStorage.getItem('accountInfo'));
+    console.log('userId: ', userId);
+    console.log('accountInfo: ', accountInfo);
+
+    if (accountInfo) {
+        displayAccountInfo(accountInfo);
+    };
+
+    function displayAccountInfo(accountInfo) {
+        // Display the account information
+        document.getElementById('balance-placeholder').innerText = accountInfo.balance;
+        document.getElementById('account-number-placeholder').innerText = accountInfo.id;
+        document.getElementById('name-placeholder').innerText = accountInfo.firname + ' ' + accountInfo.lasname;
+        
 
   
     function makeDeposit() {
